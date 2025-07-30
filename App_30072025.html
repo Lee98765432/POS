@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POS System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <!-- PWA: Manifest & Theme -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#4a90e2">
+  <!-- iOS Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    :root {
+      --primary-color: #4a90e2;
+      --secondary-color: #e6f2ff;
+      --accent-color: #4a90e2;
+      --text-color: #333;
+      --bg-card: #fff;
+      --radius: 12px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --font: "Inter", sans-serif;
+      --blue-qty-color: #4a90e2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--secondary-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: var(--text-color);
+    }
+    #container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 95%;
+      max-width: 400px;
+      height: 100%;
+      padding-bottom: 70px;
+    }
+
+    h2 {
+      font-weight: 700;
+      font-size: 1.45rem;
+      margin: 18px 0 12px;
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 4px;
+      letter-spacing: 0.01em;
+    }
+    .page {
+      display: none;
+      padding: 15px;
+      overflow-y: auto;
+      height: calc(100% - 70px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .page.active { display: block; }
+    #bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      display: flex;
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+      z-index: 10;
+    }
+    #bottom-nav button {
+      flex: 1;
+      padding: 12px 8px;
+      background: none;
+      border: none;
+      font-weight: 600;
+      color: var(--primary-color);
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 0.85em;
+      letter-spacing: 0.01em;
+    }
+    #bottom-nav button:hover,
+    #bottom-nav button.active {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    #category-nav,
+    #tx-buttons {
+      display: none;
+      justify-content: space-around;
+      margin-bottom: 10px;
+    }
+    #category-nav button,
+    #tx-buttons button {
+      background: var(--bg-card);
+      border: none;
+      padding: 10px 15px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-weight: 600;
+      color: var(--primary-color);
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 1em;
+    }
+    #category-nav button:hover,
+    #tx-buttons button:hover,
+    #category-nav button.active,
+    #tx-buttons button.active {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    #item-list div,
+    #selected-list div,
+    #available-list div {
+      display: flex;
+      align-items: center;
+      background: var(--bg-card);
+      padding: 12px 10px;
+      margin: 7px 0;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: 1.01em;
+      min-height: 36px;
+    }
+    .qty-count {
+      color: var(--primary-color);
+      font-weight: 700;
+      margin-right: 7px;
+      min-width: 22px;
+      text-align: right;
+      font-size: 1.08em;
+      display: inline-block;
+    }
+    button.qty {
+      background: var(--primary-color);
+      border: none;
+      color: #fff;
+      padding: 3px 7px;
+      border-radius: 7px;
+      font-weight: 700;
+      font-size: 0.93em;
+      cursor: pointer;
+      margin-left: 3px;
+      margin-right: 3px;
+      min-width: 22px;
+      min-height: 22px;
+      line-height: 1;
+      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    button.qty:active { background: #357dc0; }
+    .pay-btn {
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      font-weight: 700;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+      font-size: 1.08em;
+      flex: 1;
+      max-width: 150px;
+    }
+    .pay-btn:hover { background: var(--primary-color); }
+    .cancel-btn {
+      background: #ddd;
+      color: #333;
+      border: none;
+      padding: 12px;
+      font-weight: 700;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 1.08em;
+      transition: background 0.2s;
+      flex: 1;
+      max-width: 150px;
+    }
+    .cancel-btn:hover { background: #bbb; }
+    #add-item-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    #add-item-form select,
+    #add-item-form input[type=text],
+    #add-item-form input[type=number],
+    #add-item-form textarea {
+      width: 100%;
+      max-width: 320px;
+      margin: 8px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      font-size: 1em;
+      color: var(--text-color);
+    }
+    #add-item-form textarea {
+      height: 60px;
+      resize: none;
+    }
+    #add-item-form button {
+      margin-top: 12px;
+      width: 100%;
+      max-width: 320px;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      font-weight: 700;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 1em;
+    }
+    #add-item-form button:hover { background: var(--accent-color); }
+    #add-item-error {
+      color: #d11a1a;
+      margin-top: 4px;
+      font-weight: 600;
+      font-size: 0.9em;
+      position: absolute;
+      bottom: -22px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+    }
+    .edit-btn, .delete-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1em;
+      margin-left: 8px;
+      margin-right: 2px;
+      color: var(--primary-color);
+      padding: 2px 5px;
+      border-radius: 5px;
+      transition: background 0.2s;
+    }
+    .edit-btn:hover { background: #e6f2ff; }
+    .delete-btn:hover { background: #ffeaea; color: #d11a1a; }
+    #payment-container ul {
+      list-style: none;
+      margin-bottom: 12px;
+      padding: 0;
+    }
+    #payment-container li { margin: 6px 0; }
+    #payment-mode {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    #payment-mode button {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--primary-color);
+      background: var(--bg-card);
+      color: var(--primary-color);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.3s, color 0.3s;
+      font-size: 1em;
+    }
+    #payment-mode button.active {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    .split-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      background: var(--bg-card);
+      padding: 5px 6px;
+      margin: 5px 0;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: 0.97em;
+      min-height: 30px;
+    }
+    .split-count {
+      color: var(--primary-color);
+      font-weight: 700;
+      margin-right: 7px;
+      min-width: 28px;
+      text-align: right;
+      font-size: 1.1em;
+      user-select: none;
+    }
+    .split-item label {
+      font-weight: 500;
+      margin-right: 7px;
+      min-width: 70px;
+      font-size: 0.97em;
+    }
+    .split-item input[type="number"] {
+      width: 32px;
+      padding: 3px 0;
+      border-radius: 7px;
+      border: 1px solid #ddd;
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.97em;
+      margin: 0 2px;
+    }
+    .split-item span.split-amount {
+      margin-left: auto;
+      font-weight: 600;
+      min-width: 60px;
+      text-align: right;
+      font-size: 1em;
+    }
+    .tx-arrow-btn {
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      color: var(--primary-color);
+      padding-left: 8px;
+      padding-right: 0;
+      transition: color 0.2s;
+    }
+    .tx-arrow-btn:active { color: #222; }
+    .tx-details {
+      margin-left: 18px;
+      margin-bottom: 10px;
+      font-size: 0.98em;
+      background: #f5faff;
+      border-radius: 8px;
+      padding: 7px 10px;
+    }
+    .tx-done-btn {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      font-size: 1.2em;
+      border-radius: 7px;
+      cursor: pointer;
+      margin-left: 10px;
+      padding: 3px 10px;
+      transition: background 0.2s;
+    }
+    .tx-done-btn:hover {
+      background: #357dc0;
+    }
+    .edit-form input, .edit-form textarea, .edit-form select {
+      margin: 4px 0;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      width: 95%;
+      font-size: 1em;
+    }
+    .edit-form button {
+      margin-top: 6px;
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #special-request {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid #bcd;
+      font-size: 1em;
+      resize: vertical;
+      min-height: 40px;
+      font-family: var(--font);
+      color: var(--text-color);
+      box-sizing: border-box;
+    }
+    .special-label {
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-right: 6px;
+    }
+    .dialog-bg {
+      position: fixed;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .dialog-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 26px 18px 18px 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+      min-width: 260px;
+      text-align: center;
+      font-size: 1.08em;
+    }
+    .dialog-title {
+      color: var(--primary-color);
+      font-weight: 700;
+      font-size: 1.13em;
+      margin-bottom: 17px;
+      letter-spacing: 0.01em;
+    }
+    .dialog-btn {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 1em;
+      font-weight: 700;
+      margin: 0 8px 8px 0;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .dialog-btn.confirm { width: 100%; margin: 14px 0 0 0; }
+    .dialog-input {
+      width: 120px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #bcd;
+      font-size: 1em;
+      margin: 0 0 8px 0;
+      text-align: right;
+    }
+    .dialog-label {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .dialog-change {
+      font-weight: 700;
+      color: #249d2f;
+      margin-top: 8px;
+      font-size: 1em;
+    }
+    .dialog-error {
+      color: #d11a1a;
+      font-weight: 600;
+      margin-top: 7px;
+      font-size: 1em;
+    }
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0,0,0,0) !important;
+      border: 0 !important;
+    }
+    .transaction-swipe-container {
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+      margin: 7px 0;
+    }
+    .swipe-background {
+      position: absolute;
+      top: 0; bottom: 0; right: 0; left: 0;
+      background-color: #d11a1a;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding-right: 20px;
+      border-radius: var(--radius);
+      color: white;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .swipe-content {
+      position: relative;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px 10px;
+      display: flex;
+      align-items: center;
+      transition: transform 0.3s ease;
+      z-index: 1;
+    }
+    #settings-submenu {
+      display: none; /* Keine Buttons mehr, daher ausgeblendet */
+      flex-direction: row;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px;
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+    }
+    #settings-submenu button {
+      flex: 1;
+      max-width: 150px;
+      margin: 0;
+      padding: 10px;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--primary-color);
+      background: var(--bg-card);
+      color: var(--primary-color);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      font-size: 1em;
+    }
+    #settings-submenu button:hover {
+      background: var(--primary-color);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- Bestellung Page -->
+    <div id="bestellung-page" class="page active" role="main" aria-label="Bestellungen">
+      <h2>BESTELLUNGEN</h2>
+      <label for="table-number" class="sr-only">Tischnummer (optional)</label>
+      <input
+        type="number"
+        id="table-number"
+        placeholder="Tischnummer (optional)"
+        style="margin-bottom: 10px; padding: 8px; border: 1px solid #ddd; border-radius: var(--radius); width: 100%; max-width: 320px;"
+        aria-describedby="table-number-desc"
+      />
+      <div id="category-nav" role="tablist" aria-label="Kategorien">
+        <button id="cat-essen" role="tab" aria-selected="true" onclick="changeCategory('essen')">Essen</button>
+        <button id="cat-getraenke" role="tab" aria-selected="false" onclick="changeCategory('getraenke')">Getränke</button>
+        <button id="cat-desserts" role="tab" aria-selected="false" onclick="changeCategory('desserts')">Desserts</button>
+      </div>
+      <div id="item-list" aria-live="polite" aria-label="Artikel Liste"></div>
+      <h4>Ausgewählte Artikel</h4>
+      <div id="selected-list" aria-live="polite" aria-label="Ausgewählte Artikel"></div>
+      <textarea id="special-request" placeholder="Sonderwünsche (optional)" aria-label="Sonderwünsche"></textarea>
+      <h4>Gesamtpreis: CHF <span id="total-price">0.00</span></h4>
+      <button class="pay-btn" onclick="openPaymentPage()">Bezahlen</button>
+    </div>
+
+    <!-- Transaktionen Page -->
+    <div id="transaktionen-page" class="page" role="main" aria-label="Transaktionen">
+      <h2>TRANSAKTIONEN</h2>
+      <div id="tx-buttons" role="tablist" aria-label="Transaktionsfilter">
+        <button id="tx-pendent" role="tab" aria-selected="true" onclick="showTransaction('pendent')">PENDENT</button>
+        <button id="tx-erledigt" role="tab" aria-selected="false" onclick="showTransaction('erledigt')">ERLEDIGT</button>
+      </div>
+      <div id="transaction-list" aria-live="polite" aria-label="Transaktionsliste"></div>
+    </div>
+
+    <!-- Elemente Page -->
+    <div id="elemente-page" class="page" role="main" aria-label="Elemente verwalten">
+      <h2>ELEMENTE VERWALTEN</h2>
+      <form id="add-item-form" aria-describedby="add-item-error">
+        <select id="item-category" required aria-label="Gruppe wählen">
+          <option value="" disabled selected>Gruppe wählen</option>
+          <option value="essen">Essen</option>
+          <option value="getraenke">Getränke</option>
+          <option value="desserts">Desserts</option>
+        </select>
+        <input type="text" id="item-name" placeholder="Name" required aria-label="Name" />
+        <input
+          type="number"
+          id="item-price"
+          placeholder="Preis"
+          min="0"
+          step="0.01"
+          required
+          aria-label="Preis"
+        />
+        <textarea id="item-description" placeholder="Beschreibung (optional)" aria-label="Beschreibung"></textarea>
+        <button type="submit">Artikel hinzufügen</button>
+        <div id="add-item-error" role="alert" aria-live="assertive"></div>
+      </form>
+      <h4>Verfügbare Artikel</h4>
+      <div id="available-list" aria-live="polite" aria-label="Verfügbare Artikel"></div>
+    </div>
+
+    <!-- Zahlung Page -->
+    <div id="payment-page" class="page" role="main" aria-label="Zahlung">
+      <h2>ZAHLUNG</h2>
+      <div id="payment-mode" role="radiogroup" aria-label="Zahlungsmodus">
+        <button id="pay-mode-together" class="active" role="radio" aria-checked="true" onclick="setPaymentMode('together')">Gemeinsam bezahlen</button>
+        <button id="pay-mode-shared" role="radio" aria-checked="false" onclick="setPaymentMode('shared')">Geteilt bezahlen</button>
+      </div>
+      <div id="payment-container" aria-live="polite" aria-label="Zahlungsdetails"></div>
+      <div id="shared-total-sum" style="font-weight:700; color: black; margin-top: 12px;"></div>
+      <div id="payment-buttons" style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+        <button class="cancel-btn" onclick="cancelPayment()">Abbrechen</button>
+        <button class="pay-btn" onclick="confirmPayment()">Bestätigen</button>
+      </div>
+    </div>
+
+    <!-- Einstellungen Untermenü (leer & ausgeblendet) -->
+    <div id="settings-submenu" style="display:none;"></div>
+
+    <nav id="bottom-nav" role="navigation" aria-label="Hauptnavigation">
+      <button id="nav-bestellung" class="active" aria-current="page" onclick="showPage('bestellung-page')">Bestellung</button>
+      <button id="nav-transaktionen" onclick="showPage('transaktionen-page')">Transaktionen</button>
+      <button id="nav-einstellungen" onclick="showSettings()">Einstellungen</button>
+    </nav>
+  </div>
+
+  <script>
+    // Daten und Variablen
+    let items = [
+      { id: 1, name: "Pizza", preis: 8.5, gruppe: "essen", beschreibung: "Leckere Pizza" },
+      { id: 2, name: "Salat", preis: 5.0, gruppe: "essen", beschreibung: "Frischer Salat" },
+      { id: 3, name: "Cola", preis: 2.5, gruppe: "getraenke", beschreibung: "Erfrischendes Getränk" },
+      { id: 4, name: "Eis", preis: 3.0, gruppe: "desserts", beschreibung: "Vanilleeis" },
+    ];
+    let selectedCategory = "essen";
+    let selectedItems = [];
+    let transactions = [];
+    let paymentMode = "together";
+    let unpaidItems = [];
+    let splitSelected = {};
+    let editingItemId = null;
+    let nextItemId = items.length ? Math.max(...items.map(x => x.id)) + 1 : 1;
+    let nextOrderId = 1;
+    let currentSharedOrderId = null;
+
+    if (localStorage.getItem("pos-items")) {
+      items = JSON.parse(localStorage.getItem("pos-items"));
+      nextItemId = items.length ? Math.max(...items.map(x => x.id)) + 1 : 1;
+    }
+    if (localStorage.getItem("pos-transactions")) {
+      transactions = JSON.parse(localStorage.getItem("pos-transactions"));
+      const maxOrder = transactions.reduce((max, tx) => Math.max(max, tx.orderId || 0), 0);
+      nextOrderId = maxOrder + 1;
+    }
+
+    function saveData() {
+      localStorage.setItem("pos-items", JSON.stringify(items));
+      localStorage.setItem("pos-transactions", JSON.stringify(transactions));
+    }
+
+    function escapeHtml(text) {
+      const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+      return text ? text.replace(/[&<>"']/g, m => map[m]) : "";
+    }
+
+    // Navigation und Seitenanzeige
+    function showSettings() {
+      document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+      document.getElementById("settings-submenu").style.display = "none";
+      updateBottomNav("settings");
+      showPage("elemente-page");
+    }
+
+    function updateBottomNav(activePage) {
+      document.querySelectorAll("#bottom-nav button").forEach(btn => btn.classList.remove("active"));
+      if (activePage !== "settings") {
+        document.getElementById("settings-submenu").style.display = "none";
+      }
+      if (activePage === "bestellung-page") {
+        document.getElementById("nav-bestellung").classList.add("active");
+        document.getElementById("nav-bestellung").setAttribute("aria-current", "page");
+      } else {
+        document.getElementById("nav-bestellung").removeAttribute("aria-current");
+      }
+      if (activePage === "transaktionen-page") {
+        document.getElementById("nav-transaktionen").classList.add("active");
+        document.getElementById("nav-transaktionen").setAttribute("aria-current", "page");
+      } else {
+        document.getElementById("nav-transaktionen").removeAttribute("aria-current");
+      }
+      if (activePage === "settings") {
+        document.getElementById("nav-einstellungen").classList.add("active");
+        document.getElementById("nav-einstellungen").setAttribute("aria-current", "page");
+        document.getElementById("settings-submenu").style.display = "none";
+      } else {
+        document.getElementById("nav-einstellungen").removeAttribute("aria-current");
+      }
+    }
+
+    function showPage(pageId) {
+      document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+      document.getElementById("settings-submenu").style.display = "none";
+      if (pageId === "elemente-page") {
+        updateBottomNav("settings");
+      } else {
+        updateBottomNav(pageId);
+      }
+      const page = document.getElementById(pageId);
+      if (page) page.style.display = "block";
+
+      if (pageId === "bestellung-page") {
+        document.getElementById("category-nav").style.display = "flex";
+        renderCategoryNav();
+        renderItemList();
+        renderSelectedList();
+        updateTotalPrice();
+      } else {
+        document.getElementById("category-nav").style.display = "none";
+      }
+
+      if (pageId === "transaktionen-page") {
+        document.getElementById("tx-buttons").style.display = "flex";
+        showTransaction("pendent");
+      } else {
+        document.getElementById("tx-buttons").style.display = "none";
+      }
+
+      if (pageId === "elemente-page") renderAvailableList();
+
+      if (pageId === "payment-page") renderPayment();
+    }
+
+    // Kategorien-Navigation
+    function changeCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryNav();
+      renderItemList();
+    }
+    function renderCategoryNav() {
+      ["essen", "getraenke", "desserts"].forEach((cat) => {
+        const btn = document.getElementById("cat-" + cat);
+        if (cat === selectedCategory) {
+          btn.classList.add("active");
+          btn.setAttribute("aria-selected", "true");
+          btn.setAttribute("tabindex", "0");
+        } else {
+          btn.classList.remove("active");
+          btn.setAttribute("aria-selected", "false");
+          btn.setAttribute("tabindex", "-1");
+        }
+      });
+    }
+
+    // Artikelanzeige und Warenkorb
+    function renderItemList() {
+      const container = document.getElementById("item-list");
+      container.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+      const filtered = items.filter((i) => i.gruppe === selectedCategory);
+      filtered.forEach((i) => {
+        const div = document.createElement("div");
+        const span = document.createElement("span");
+        span.textContent = `${i.name} - CHF ${i.preis.toFixed(2)}`;
+        const btn = document.createElement("button");
+        btn.textContent = "+";
+        btn.classList.add("qty");
+        btn.onclick = () => addItem(i.id);
+        btn.setAttribute('aria-label', `Einen ${i.name} hinzufügen`);
+        div.appendChild(span);
+        div.appendChild(btn);
+        fragment.appendChild(div);
+      });
+      container.appendChild(fragment);
+    }
+
+    function addItem(id) {
+      const existing = selectedItems.find((i) => i.id === id);
+      if (existing) existing.qty++;
+      else {
+        const item = items.find((i) => i.id === id);
+        selectedItems.push({ ...item, qty: 1 });
+      }
+      renderSelectedList();
+      updateTotalPrice();
+    }
+
+    function renderSelectedList() {
+      const container = document.getElementById("selected-list");
+      container.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+      selectedItems.forEach((i) => {
+        const div = document.createElement("div");
+        const qtySpan = document.createElement("span");
+        qtySpan.className = "qty-count";
+        qtySpan.textContent = i.qty;
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = ` ${i.name} - CHF ${(i.preis * i.qty).toFixed(2)}`;
+        nameSpan.style.flex = "1";
+        div.appendChild(qtySpan);
+        div.appendChild(nameSpan);
+        const btnMinus = document.createElement("button");
+        btnMinus.textContent = "-";
+        btnMinus.classList.add("qty");
+        btnMinus.setAttribute('aria-label', `Einen ${i.name} entfernen`);
+        btnMinus.onclick = () => {
+          i.qty--;
+          if (i.qty <= 0) selectedItems = selectedItems.filter((x) => x.id !== i.id);
+          renderSelectedList();
+          updateTotalPrice();
+        };
+        const btnPlus = document.createElement("button");
+        btnPlus.textContent = "+";
+        btnPlus.classList.add("qty");
+        btnPlus.setAttribute('aria-label', `Einen ${i.name} hinzufügen`);
+        btnPlus.onclick = () => {
+          i.qty++;
+          renderSelectedList();
+          updateTotalPrice();
+        };
+        div.appendChild(btnMinus);
+        div.appendChild(btnPlus);
+        fragment.appendChild(div);
+      });
+      container.appendChild(fragment);
+    }
+
+    function updateTotalPrice() {
+      const total = selectedItems.reduce((sum, i) => sum + i.preis * i.qty, 0);
+      document.getElementById("total-price").textContent = total.toFixed(2);
+    }
+
+    // Artikelverwaltung
+    function renderAvailableList() {
+      const container = document.getElementById("available-list");
+      container.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+      items.forEach((item) => {
+        const div = document.createElement("div");
+
+        const span = document.createElement("span");
+        span.textContent = `${item.name} (${item.gruppe}) - CHF ${item.preis.toFixed(2)}`;
+        div.appendChild(span);
+
+        const btnContainer = document.createElement("span");
+        btnContainer.style.marginLeft = "auto";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "edit-btn";
+        editBtn.textContent = "Bearbeiten";
+        editBtn.addEventListener("click", () => editItem(item.id));
+        btnContainer.appendChild(editBtn);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Löschen";
+        deleteBtn.addEventListener("click", () => deleteItem(item.id));
+        btnContainer.appendChild(deleteBtn);
+
+        div.appendChild(btnContainer);
+        fragment.appendChild(div);
+      });
+      container.appendChild(fragment);
+    }
+
+    document.getElementById("add-item-form").onsubmit = function (e) {
+      e.preventDefault();
+      const category = document.getElementById("item-category").value;
+      const name = document.getElementById("item-name").value.trim();
+      const price = parseFloat(document.getElementById("item-price").value);
+      const description = document.getElementById("item-description").value.trim();
+      const errorDiv = document.getElementById("add-item-error");
+      if (!category || !name || isNaN(price) || price < 0) {
+        errorDiv.textContent = "Bitte alle Felder korrekt ausfüllen.";
+        return;
+      }
+      if (editingItemId) {
+        const itemIndex = items.findIndex(i => i.id === editingItemId);
+        if (itemIndex > -1) {
+          items[itemIndex] = { ...items[itemIndex], name, preis: price, gruppe: category, beschreibung: description };
+          editingItemId = null;
+        }
+      } else {
+        items.push({ id: nextItemId++, name, preis: price, gruppe: category, beschreibung: description });
+      }
+      saveData();
+      renderAvailableList();
+      this.reset();
+      errorDiv.textContent = "";
+      document.getElementById("item-category").value = "";
+      document.querySelector("#add-item-form button[type='submit']").textContent = "Artikel hinzufügen";
+    };
+
+    // Funktionen editItem, deleteItem, showTransaction, etc.
+
+    function editItem(id) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        document.getElementById("item-category").value = item.gruppe;
+        document.getElementById("item-name").value = item.name;
+        document.getElementById("item-price").value = item.preis;
+        document.getElementById("item-description").value = item.beschreibung;
+        editingItemId = id;
+        document.querySelector("#add-item-form button[type='submit']").textContent = "Artikel aktualisieren";
+      }
+    }
+
+    function deleteItem(id) {
+      if (confirm("Möchten Sie diesen Artikel wirklich löschen?")) {
+        items = items.filter(i => i.id !== id);
+        saveData();
+        renderAvailableList();
+        if (editingItemId === id) {
+          document.getElementById("add-item-form").reset();
+          editingItemId = null;
+          document.querySelector("#add-item-form button[type='submit']").textContent = "Artikel hinzufügen";
+        }
+      }
+    }
+
+    function showTransaction(status) {
+      document.getElementById("tx-pendent").classList.toggle("active", status === "pendent");
+      document.getElementById("tx-erledigt").classList.toggle("active", status === "erledigt");
+      document.getElementById("tx-pendent").setAttribute("aria-selected", status === "pendent");
+      document.getElementById("tx-erledigt").setAttribute("aria-selected", status === "erledigt");
+      const container = document.getElementById("transaction-list");
+      container.innerHTML = "";
+
+      if (status === "erledigt") {
+        const totalRevenue = transactions.filter(t => t.status === "erledigt").reduce((sum, t) => sum + t.total, 0);
+        const revenueDiv = document.createElement("div");
+        revenueDiv.style.fontWeight = "700";
+        revenueDiv.style.color = "var(--primary-color)";
+        revenueDiv.style.marginBottom = "10px";
+        revenueDiv.textContent = `Umsatz total: CHF ${totalRevenue.toFixed(2)}`;
+        container.appendChild(revenueDiv);
+      }
+
+      let filtered = transactions.filter((t) => t.status === status).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      if (filtered.length === 0) {
+        container.textContent = "Keine Transaktionen";
+        return;
+      }
+      if (status === "pendent") {
+        const grouped = {};
+        filtered.forEach(tx => {
+          if (!grouped[tx.orderId]) grouped[tx.orderId] = [];
+          grouped[tx.orderId].push(tx);
+        });
+        Object.values(grouped).forEach(group => {
+          const combinedItems = {};
+          let total = 0;
+          let table = group[0].table || null;
+          let specialRequest = group[0].specialRequest || "";
+          group.forEach(tx => {
+            tx.items.forEach(item => {
+              if (!combinedItems[item.id]) {
+                combinedItems[item.id] = { ...item };
+              } else {
+                combinedItems[item.id].qty += item.qty;
+              }
+              total += item.preis * item.qty;
+            });
+          });
+          const div = document.createElement("div");
+          div.className = "transaction-swipe-container";
+          div.style.cursor = "pointer";
+          div.ondblclick = () => editTableNumber(group[0].orderId);
+          const swipeBg = document.createElement("div");
+          swipeBg.className = "swipe-background";
+          swipeBg.innerHTML = "🗑️";
+          swipeBg.style.opacity = 0;
+          swipeBg.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm("Bestellung wirklich löschen?")) {
+              transactions = transactions.filter(t => t.orderId !== group[0].orderId);
+              saveData();
+              showTransaction(status);
+            }
+          };
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "swipe-content";
+          const left = document.createElement("span");
+          left.style.display = "flex";
+          left.style.flexDirection = "column";
+          left.style.flex = "1";
+          const line1 = document.createElement("span");
+          line1.textContent = `Tisch ${table || "-"} | CHF ${total.toFixed(2)}`;
+          line1.style.fontWeight = "700";
+          line1.style.color = "var(--primary-color)";
+          left.appendChild(line1);
+          const line2 = document.createElement("span");
+          const newestTx = group.reduce((a, b) => new Date(a.timestamp) > new Date(b.timestamp) ? a : b);
+          line2.textContent = `${newestTx.dayAbbr || ""} ${newestTx.timeStr || ""}`;
+          line2.style.fontSize = "0.9em";
+          line2.style.color = "#666";
+          left.appendChild(line2);
+          contentDiv.appendChild(left);
+          const arrowBtn = document.createElement("button");
+          arrowBtn.className = "tx-arrow-btn";
+          arrowBtn.setAttribute("aria-expanded", group[0].detailsOpen ? "true" : "false");
+          arrowBtn.setAttribute("aria-label", group[0].detailsOpen ? "Details ausblenden" : "Details anzeigen");
+          arrowBtn.innerHTML = group[0].detailsOpen ? "&#9660;" : "&#9654;";
+          arrowBtn.onclick = function (e) {
+            e.stopPropagation();
+            const newState = !group[0].detailsOpen;
+            group.forEach(tx => tx.detailsOpen = newState);
+            showTransaction(status);
+          };
+          contentDiv.appendChild(arrowBtn);
+          const doneBtn = document.createElement("button");
+          doneBtn.className = "tx-done-btn";
+          doneBtn.title = "Als erledigt markieren";
+          doneBtn.setAttribute("aria-label", "Als erledigt markieren");
+          doneBtn.innerHTML = "&#10003;";
+          doneBtn.onclick = function (e) {
+            e.stopPropagation();
+            if (confirm("Als erledigt markieren?")) {
+              group.forEach(tx => { tx.status = "erledigt"; tx.detailsOpen = false; });
+              showTransaction("pendent");
+              saveData();
+            }
+          };
+          contentDiv.appendChild(doneBtn);
+          div.appendChild(swipeBg);
+          div.appendChild(contentDiv);
+          container.appendChild(div);
+          if (group[0].detailsOpen) {
+            const detailsDiv = document.createElement("div");
+            detailsDiv.className = "tx-details";
+            Object.values(combinedItems).forEach(item => {
+              const d = document.createElement("div");
+              d.textContent = `${item.qty} x ${item.name} - CHF ${(item.preis * item.qty).toFixed(2)}`;
+              detailsDiv.appendChild(d);
+            });
+            if (specialRequest && specialRequest.length > 0) {
+              const s = document.createElement("div");
+              s.innerHTML = `<span class="special-label">Sonderwünsche:</span> ${escapeHtml(specialRequest)}`;
+              s.style.marginTop = "5px";
+              s.style.fontWeight = "700";
+              s.style.color = "var(--primary-color)";
+              detailsDiv.appendChild(s);
+            }
+            container.appendChild(detailsDiv);
+          }
+        });
+      } else {
+        filtered.forEach((tx) => {
+          const swipeContainer = document.createElement("div");
+          swipeContainer.className = "transaction-swipe-container";
+          const swipeBg = document.createElement("div");
+          swipeBg.className = "swipe-background";
+          swipeBg.innerHTML = "🗑️";
+          swipeBg.style.opacity = 0;
+          swipeBg.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm("Bestellung wirklich löschen?")) {
+              transactions = transactions.filter(t => t !== tx);
+              saveData();
+              showTransaction(status);
+            }
+          };
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "swipe-content";
+          const left = document.createElement("span");
+          left.style.display = "flex";
+          left.style.flexDirection = "column";
+          left.style.flex = "1";
+          const line1 = document.createElement("span");
+          line1.textContent = `Tisch ${tx.table || "-"} | CHF ${tx.total.toFixed(2)}`;
+          line1.style.fontWeight = "700";
+          line1.style.color = "var(--primary-color)";
+          left.appendChild(line1);
+          const line2 = document.createElement("span");
+          line2.textContent = `${tx.dayAbbr || ""} ${tx.timeStr || ""}`;
+          line2.style.fontSize = "0.9em";
+          line2.style.color = "#666";
+          left.appendChild(line2);
+          contentDiv.appendChild(left);
+          const arrowBtn = document.createElement("button");
+          arrowBtn.className = "tx-arrow-btn";
+          arrowBtn.setAttribute("aria-expanded", tx.detailsOpen ? "true" : "false");
+          arrowBtn.setAttribute("aria-label", tx.detailsOpen ? "Details ausblenden" : "Details anzeigen");
+          arrowBtn.innerHTML = tx.detailsOpen ? "&#9660;" : "&#9654;";
+          arrowBtn.onclick = function (e) {
+            e.stopPropagation();
+            tx.detailsOpen = !tx.detailsOpen;
+            showTransaction(status);
+          };
+          contentDiv.appendChild(arrowBtn);
+          const undoBtn = document.createElement("button");
+          undoBtn.className = "tx-done-btn";
+          undoBtn.title = "Zurück zu pendent";
+          undoBtn.setAttribute("aria-label", "Zurück zu pendent");
+          undoBtn.innerHTML = "&#8634;";
+          undoBtn.onclick = function (e) {
+            e.stopPropagation();
+            if (confirm("Zurück zu pendent?")) {
+              tx.status = "pendent";
+              tx.detailsOpen = false;
+              showTransaction("erledigt");
+              saveData();
+            }
+          };
+          contentDiv.appendChild(undoBtn);
+          swipeContainer.appendChild(swipeBg);
+          swipeContainer.appendChild(contentDiv);
+          container.appendChild(swipeContainer);
+          if (tx.detailsOpen) {
+            const detailsDiv = document.createElement("div");
+            detailsDiv.className = "tx-details";
+            tx.items.forEach(item => {
+              const d = document.createElement("div");
+              d.textContent = `${item.qty} x ${item.name} - CHF ${(item.preis * item.qty).toFixed(2)}`;
+              detailsDiv.appendChild(d);
+            });
+            if (tx.specialRequest && tx.specialRequest.length > 0) {
+              const s = document.createElement("div");
+              s.innerHTML = `<span class="special-label">Sonderwünsche:</span> ${escapeHtml(tx.specialRequest)}`;
+              s.style.marginTop = "5px";
+              s.style.fontWeight = "700";
+              s.style.color = "var(--primary-color)";
+              detailsDiv.appendChild(s);
+            }
+            container.appendChild(detailsDiv);
+          }
+        });
+      }
+    }
+
+    function editTableNumber(orderId) {
+      const newTable = prompt("Neue Tischnummer eingeben (leer für keine):");
+      if (newTable !== null) {
+        transactions.forEach(tx => {
+          if (tx.orderId === orderId) {
+            tx.table = newTable.trim() === "" ? null : newTable.trim();
+          }
+        });
+        saveData();
+        showTransaction("pendent");
+      }
+    }
+
+    // Zahlungsmodus umschalten
+    function setPaymentMode(mode) {
+      paymentMode = mode;
+      document.getElementById("pay-mode-together").classList.toggle("active", mode === "together");
+      document.getElementById("pay-mode-shared").classList.toggle("active", mode === "shared");
+      document.getElementById("pay-mode-together").setAttribute("aria-checked", mode === "together");
+      document.getElementById("pay-mode-shared").setAttribute("aria-checked", mode === "shared");
+      if (mode === "shared") {
+        unpaidItems = selectedItems.map((i) => ({ ...i }));
+        splitSelected = {};
+        currentSharedOrderId = null;
+      } else {
+        unpaidItems = [];
+        splitSelected = {};
+        currentSharedOrderId = null;
+      }
+      renderPayment();
+    }
+
+    function openPaymentPage() {
+      if (selectedItems.length === 0) {
+        alert("Bitte wählen Sie zuerst Artikel aus.");
+        return;
+      }
+      setPaymentMode(paymentMode);
+      renderPayment();
+      showPage("payment-page");
+    }
+
+    function renderPayment() {
+      const container = document.getElementById("payment-container");
+      const sharedTotalSum = document.getElementById("shared-total-sum");
+      container.innerHTML = "";
+      sharedTotalSum.textContent = "";
+
+      if (paymentMode === "together") {
+        sharedTotalSum.style.display = "none";
+
+        unpaidItems = selectedItems.map(i => ({ ...i }));
+        splitSelected = {};
+        unpaidItems.forEach((i) => {
+          if (typeof splitSelected[i.id] !== "number") splitSelected[i.id] = i.qty;
+          const div = document.createElement("div");
+          div.className = "split-item";
+
+          const countSpan = document.createElement("span");
+          countSpan.className = "split-count";
+          countSpan.textContent = `${i.qty}`;
+          div.appendChild(countSpan);
+
+          const label = document.createElement("label");
+          label.textContent = i.name;
+          div.appendChild(label);
+
+          const amountSpan = document.createElement("span");
+          amountSpan.className = "split-amount";
+          amountSpan.textContent = `CHF ${(i.preis * i.qty).toFixed(2)}`;
+          div.appendChild(amountSpan);
+
+          container.appendChild(div);
+        });
+
+        const total = selectedItems.reduce((sum, i) => sum + i.preis * i.qty, 0);
+        const totalDiv = document.createElement("div");
+        totalDiv.style.fontWeight = "700";
+        totalDiv.style.marginTop = "12px";
+        totalDiv.textContent = `Gesamtsumme: CHF ${total.toFixed(2)}`;
+        container.appendChild(totalDiv);
+
+      } else {
+        sharedTotalSum.style.display = "";
+        if (unpaidItems.length === 0) {
+          container.textContent = "Alle Artikel wurden bezahlt.";
+          sharedTotalSum.textContent = "";
+          return;
+        }
+        unpaidItems.forEach((i) => {
+          if (typeof splitSelected[i.id] !== "number") splitSelected[i.id] = 0;
+          const div = document.createElement("div");
+          div.className = "split-item";
+          const countSpan = document.createElement("span");
+          countSpan.className = "split-count";
+          countSpan.textContent = `${splitSelected[i.id]}/${i.qty}`;
+          div.appendChild(countSpan);
+          const label = document.createElement("label");
+          label.textContent = i.name;
+          div.appendChild(label);
+          const minusBtn = document.createElement("button");
+          minusBtn.textContent = "-";
+          minusBtn.className = "qty";
+          minusBtn.onclick = function () {
+            if (splitSelected[i.id] > 0) splitSelected[i.id]--;
+            qtyInput.value = splitSelected[i.id];
+            qtyInput.oninput();
+          };
+          div.appendChild(minusBtn);
+          const qtyInput = document.createElement("input");
+          qtyInput.type = "number";
+          qtyInput.min = 0;
+          qtyInput.max = i.qty;
+          qtyInput.value = splitSelected[i.id];
+          qtyInput.id = `split-qty-${i.id}`;
+          div.appendChild(qtyInput);
+          const plusBtn = document.createElement("button");
+          plusBtn.textContent = "+";
+          plusBtn.className = "qty";
+          plusBtn.onclick = function () {
+            if (splitSelected[i.id] < i.qty) splitSelected[i.id]++;
+            qtyInput.value = splitSelected[i.id];
+            qtyInput.oninput();
+          };
+          div.appendChild(plusBtn);
+          const amountSpan = document.createElement("span");
+          amountSpan.className = "split-amount";
+          amountSpan.id = `split-amount-${i.id}`;
+          amountSpan.textContent = `CHF ${(i.preis * splitSelected[i.id]).toFixed(2)}`;
+          div.appendChild(amountSpan);
+          qtyInput.oninput = function () {
+            let val = parseInt(qtyInput.value, 10) || 0;
+            if (val > i.qty) { qtyInput.value = i.qty; val = i.qty; }
+            if (val < 0) { qtyInput.value = 0; val = 0; }
+            splitSelected[i.id] = val;
+            countSpan.textContent = `${val}/${i.qty}`;
+            amountSpan.textContent = `CHF ${(i.preis * val).toFixed(2)}`;
+            updateSplitTotalSum();
+          };
+          container.appendChild(div);
+        });
+
+        function updateSplitTotalSum() {
+          let splitSum = 0;
+          for (const i of unpaidItems) {
+            const qty = splitSelected[i.id] || 0;
+            splitSum += qty * i.preis;
+          }
+          sharedTotalSum.textContent = `Gesamtsumme: CHF ${splitSum.toFixed(2)}`;
+        }
+        updateSplitTotalSum();
+      }
+    }
+
+    function cancelPayment() {
+      showPage("bestellung-page");
+      unpaidItems = [];
+      splitSelected = {};
+      currentSharedOrderId = null;
+    }
+
+    function handlePaymentDialog(total, callback) {
+      let dlg = document.createElement("div");
+      dlg.className = "dialog-bg";
+      let box = document.createElement("div");
+      box.className = "dialog-box";
+      box.innerHTML = `<div class="dialog-title">Zahlart</div>
+        <button id="twint-btn" class="dialog-btn">Twint</button>
+        <button id="cash-btn" class="dialog-btn">Bargeld</button>
+        <div id="cash-area" style="display:none;margin-top:17px;">
+          <label for="cash-in" class="dialog-label">Betrag erhalten:</label>
+          <input id="cash-in" type="number" min="${total}" step="0.01" class="dialog-input" />
+          <div id="change-area" class="dialog-change"></div>
+          <div id="error-area" class="dialog-error"></div>
+          <button id="confirm-cash" class="dialog-btn confirm">Bestätigen</button>
+        </div>
+      `;
+      dlg.appendChild(box);
+      document.body.appendChild(dlg);
+      box.querySelector("#twint-btn").onclick = function () {
+        document.body.removeChild(dlg);
+        callback("twint");
+      };
+      box.querySelector("#cash-btn").onclick = function () {
+        box.querySelector("#cash-area").style.display = "block";
+      };
+      box.querySelector("#confirm-cash").onclick = function () {
+        let val = parseFloat(box.querySelector("#cash-in").value);
+        if (isNaN(val) || val < total) {
+          box.querySelector("#change-area").textContent = "";
+          box.querySelector("#error-area").textContent = "Zu wenig erhalten!";
+          return;
+        }
+        let change = val - total;
+        box.querySelector("#error-area").textContent = "";
+        box.querySelector("#change-area").textContent = "Rückgeld: CHF " + change.toFixed(2);
+        setTimeout(function () {
+          document.body.removeChild(dlg);
+          callback("bargeld", val);
+        }, 900);
+      };
+    }
+
+    function confirmPayment() {
+      if (paymentMode === "together") {
+        const tableNum = document.getElementById("table-number").value || null;
+        const specialRequest = document.getElementById("special-request").value.trim();
+        const total = selectedItems.reduce((sum, i) => sum + i.preis * i.qty, 0);
+        if (total <= 0) {
+          alert("Keine Artikel zum Bezahlen.");
+          return;
+        }
+        handlePaymentDialog(total, function (paymentType, cashAmount) {
+          const now = new Date();
+          const dayAbbr = now.toLocaleDateString('de-DE', { weekday: 'short' });
+          const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+          const tx = {
+            orderId: nextOrderId++,
+            table: tableNum,
+            items: [...selectedItems],
+            total, status: "pendent", detailsOpen: false, specialRequest, paymentType,
+            cashAmount: paymentType === "bargeld" ? cashAmount : undefined,
+            timestamp: now.toISOString(),
+            dayAbbr,
+            timeStr
+          };
+          transactions.push(tx);
+          saveData();
+          alert("Zahlung bestätigt: " + (paymentType === "twint" ? "Twint" : "Bargeld"));
+          selectedItems = [];
+          unpaidItems = [];
+          splitSelected = {};
+          document.getElementById("special-request").value = "";
+          renderSelectedList();
+          updateTotalPrice();
+          currentSharedOrderId = null;
+          showPage("bestellung-page");
+        });
+      } else if (paymentMode === "shared") {
+        const totalSelected = Object.values(splitSelected).reduce((sum, val) => sum + val, 0);
+        if (totalSelected === 0) {
+          alert("Bitte wählen Sie mindestens einen Artikel zum Bezahlen aus.");
+          return;
+        }
+        for (const i of unpaidItems) {
+          if (splitSelected[i.id] > i.qty) {
+            alert(`Die Menge für ${i.name} überschreitet die verfügbare Menge.`);
+            return;
+          }
+        }
+        let total = 0;
+        const itemsToPay = [];
+        for (const i of unpaidItems) {
+          const qtyToPay = splitSelected[i.id] || 0;
+          if (qtyToPay > 0) {
+            itemsToPay.push({ ...i, qty: qtyToPay });
+            total += i.preis * qtyToPay;
+          }
+        }
+        if (total <= 0) {
+          alert("Keine Artikel zum Bezahlen ausgewählt.");
+          return;
+        }
+        handlePaymentDialog(total, function (paymentType, cashAmount) {
+          const now = new Date();
+          const dayAbbr = now.toLocaleDateString('de-DE', { weekday: 'short' });
+          const timeStr = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+          const tableNum = document.getElementById("table-number").value || null;
+          const specialRequest = document.getElementById("special-request").value.trim();
+          let thisOrderId = currentSharedOrderId;
+          if (!thisOrderId) {
+            thisOrderId = nextOrderId++;
+            currentSharedOrderId = thisOrderId;
+          }
+          const tx = {
+            orderId: thisOrderId,
+            table: tableNum,
+            items: itemsToPay,
+            total,
+            status: "pendent",
+            detailsOpen: false,
+            specialRequest,
+            paymentType,
+            cashAmount: paymentType === "bargeld" ? cashAmount : undefined,
+            timestamp: now.toISOString(),
+            dayAbbr,
+            timeStr
+          };
+          transactions.push(tx);
+          unpaidItems = unpaidItems.map(i => {
+            const paidQty = splitSelected[i.id] || 0;
+            return { ...i, qty: i.qty - paidQty };
+          }).filter(i => i.qty > 0);
+          splitSelected = {};
+          saveData();
+          alert("Geteilte Zahlung bestätigt: " + (paymentType === "twint" ? "Twint" : "Bargeld"));
+          if (unpaidItems.length === 0) {
+            selectedItems = [];
+            document.getElementById("special-request").value = "";
+            renderSelectedList();
+            updateTotalPrice();
+            currentSharedOrderId = null;
+            showPage("bestellung-page");
+          } else {
+            renderPayment();
+          }
+        });
+      }
+    }
+
+    function enableSwipeToDelete() {
+      document.querySelectorAll('.transaction-swipe-container').forEach(container => {
+        if (container._swipeEnabled) return;
+        container._swipeEnabled = true;
+        let startX = 0, currentX = 0, dragging = false, threshold = 60;
+        const swipeContent = container.querySelector('.swipe-content');
+        const swipeBg = container.querySelector('.swipe-background');
+        container.addEventListener('touchstart', function (e) {
+          dragging = true;
+          startX = e.touches[0].clientX;
+        });
+        container.addEventListener('touchmove', function (e) {
+          if (!dragging) return;
+          currentX = e.touches[0].clientX;
+          let dx = Math.min(0, currentX - startX);
+          swipeContent.style.transform = `translateX(${dx}px)`;
+          if (dx < -threshold) {
+            swipeBg.style.opacity = "1";
+            swipeBg.style.pointerEvents = "auto";
+          } else {
+            swipeBg.style.opacity = Math.max(0, Math.abs(dx) / threshold).toString();
+            swipeBg.style.pointerEvents = "none";
+          }
+        });
+        container.addEventListener('touchend', function (e) {
+          if (!dragging) return;
+          dragging = false;
+          let dx = currentX - startX;
+          if (dx < -threshold) {
+            swipeContent.style.transform = `translateX(-70px)`;
+            swipeBg.style.opacity = "1";
+            swipeBg.style.pointerEvents = "auto";
+          } else {
+            swipeContent.style.transform = '';
+            swipeBg.style.opacity = "0";
+            swipeBg.style.pointerEvents = "none";
+          }
+        });
+        container.addEventListener('mousedown', function (e) {
+          dragging = true;
+          startX = e.clientX;
+          if (e.button !== 0) dragging = false;
+        });
+        container.addEventListener('mousemove', function (e) {
+          if (!dragging) return;
+          currentX = e.clientX;
+          let dx = Math.min(0, currentX - startX);
+          swipeContent.style.transform = `translateX(${dx}px)`;
+          if (dx < -threshold) {
+            swipeBg.style.opacity = "1";
+            swipeBg.style.pointerEvents = "auto";
+          } else {
+            swipeBg.style.opacity = Math.max(0, Math.abs(dx) / threshold).toString();
+            swipeBg.style.pointerEvents = "none";
+          }
+        });
+        container.addEventListener('mouseup', function (e) {
+          if (!dragging) return;
+          dragging = false;
+          let dx = currentX - startX;
+          if (dx < -threshold) {
+            swipeContent.style.transform = `translateX(-70px)`;
+            swipeBg.style.opacity = "1";
+            swipeBg.style.pointerEvents = "auto";
+          } else {
+            swipeContent.style.transform = '';
+            swipeBg.style.opacity = "0";
+            swipeBg.style.pointerEvents = "none";
+          }
+        });
+        container.addEventListener('mouseleave', function (e) {
+          dragging = false;
+          swipeContent.style.transform = '';
+          swipeBg.style.opacity = "0";
+          swipeBg.style.pointerEvents = "none";
+        });
+        swipeContent.addEventListener('click', function (e) {
+          if (swipeBg.style.opacity === "1") {
+            swipeContent.style.transform = '';
+            swipeBg.style.opacity = "0";
+            swipeBg.style.pointerEvents = "none";
+          }
+        });
+      });
+    }
+
+    // Überschreibe showTransaction, um Swipe zu aktivieren
+    const origShowTransaction = showTransaction;
+    showTransaction = function(status) {
+      origShowTransaction(status);
+      enableSwipeToDelete();
+    };
+
+    // Initial Setup
+    showPage("bestellung-page");
+    enableSwipeToDelete();
+
+    // Ende Script
+  </script>
+
+  <!-- Service Worker Registrierung -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('ServiceWorker registered', reg))
+        .catch(err => console.warn('ServiceWorker error', err));
+    }
+  </script>
+</body>
+</html>
